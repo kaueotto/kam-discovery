@@ -1,0 +1,25 @@
+%% Diagrama estrutural — visão de containers (inspirada no C4) do KAM
+%% Escopo: KAM operando no modo (a) serviço HTTP standalone.
+%% Fora de escopo (ver docs/roteiro-estrutural.md): modo (b) biblioteca (KamModule
+%% embutido em outro backend Nest) — é uma topologia de deploy diferente e misturá-la
+%% aqui violaria a regra de "um nível/uma topologia por desenho".
+
+flowchart TB
+    admin(["Administrador do Tenant / Master"])
+
+    subgraph KAM["Sistema KAM (serviço HTTP standalone)"]
+        painel["Painel Admin<br/>Frontend Web (React + Vite)"]
+        api["API KAM<br/>Backend NestJS<br/>(inclui o motor access-manager-core: auth + RBAC)"]
+        db[("Banco de Dados Relacional<br/>MySQL ou SQL Server<br/>— escolhido por ambiente, nunca os dois ao mesmo tempo")]
+    end
+
+    consumidora["Aplicação Consumidora<br/>ex.: Custos, InfoCI, EntidadeMais"]
+
+    admin -->|"usa (HTTPS)"| painel
+    painel -->|"chama (HTTPS/JSON, cookie de sessão)"| api
+    api -->|"lê/grava (Prisma)"| db
+    consumidora -.->|"valida sessão do usuário (JWT via JWKS)"| api
+    consumidora -.->|"sincroniza catálogo de permissões (X-Deploy-Secret, canal de máquina)"| api
+
+    classDef external stroke-dasharray: 5 5,fill:transparent
+    class consumidora external

@@ -1,0 +1,37 @@
+%% Diagrama comportamental — sequência da jornada crítica de login
+%% Caminho de sucesso + caminho de falha realista (senha incorreta -> bloqueio por
+%% tentativas). Fora de escopo: "esqueci minha senha" (não implementado no KAM hoje)
+%% e troca de senha obrigatória no primeiro acesso (mustChangePassword) — são
+%% jornadas distintas e misturá-las aqui inflaria o diagrama sem necessidade.
+
+sequenceDiagram
+    actor U as Usuário
+    participant P as Painel Admin
+    participant A as API KAM (auth)
+    participant D as Banco de Dados
+
+    U->>P: informa login e senha
+    P->>A: POST /api/auth/login
+    A->>D: busca usuário por (tenantId, login)
+    D-->>A: usuário (hash da senha, tentativasLoginFalhas, bloqueadoAte)
+
+    alt conta bloqueada (bloqueadoAte no futuro)
+        A-->>P: 401 Unauthorized (conta bloqueada)
+        P-->>U: exibe mensagem de bloqueio temporário
+    else conta liberada
+        A->>A: confere senha (bcrypt.compare)
+        alt senha incorreta
+            A->>D: incrementa tentativasLoginFalhas
+            alt atingiu o limite configurado
+                A->>D: grava bloqueadoAte = agora + janela de bloqueio
+            end
+            A-->>P: 401 Unauthorized (credenciais inválidas)
+            P-->>U: exibe erro de login
+        else senha correta
+            A->>D: zera tentativasLoginFalhas, atualiza ultimoLoginEm
+            A->>A: gera access_token e refresh_token (JWT)
+            A->>D: registra refresh_token (hash)
+            A-->>P: 200 OK + Set-Cookie (access_token, refresh_token)
+            P-->>U: acesso liberado ao painel
+        end
+    end
