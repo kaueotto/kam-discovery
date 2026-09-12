@@ -174,4 +174,4 @@ sistema sem inventar decisões:
 Os arquivos `.mmd` em [`diagrams/`](diagrams/) são o "diagram as code" —
 qualquer editor com suporte a Mermaid (ex.: extensão Mermaid no VS Code, ou
 colar o conteúdo em um live editor Mermaid) renderiza sem depender do texto
-deste README.
+deste README. 
